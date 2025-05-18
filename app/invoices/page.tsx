@@ -1,8 +1,12 @@
+"use client"
 import { Suspense } from "react"
+import { useRequireAuth } from "@/hooks/use-auth"
 import { InvoicesHeader } from "@/components/invoices-header"
 import { InvoiceLinesTable } from "@/components/invoice-lines-table"
 
 export default function InvoicesPage() {
+  const loading = useRequireAuth()
+  if (loading) return null
   return (
     <div className="flex min-h-screen flex-col">
       <div className="flex-1 space-y-6 p-6 md:p-8">

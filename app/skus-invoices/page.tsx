@@ -1,5 +1,6 @@
 "use client";
 import { Suspense } from "react";
+import { useRequireAuth } from "@/hooks/use-auth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -92,6 +93,8 @@ const SkusInvoicesContent = () => {
 
 // Main component that uses Suspense
 export default function SkusInvoicesPage() {
+  const loading = useRequireAuth();
+  if (loading) return null;
   return (
     <Suspense fallback={
       <div className="space-y-4 p-6">

@@ -1,10 +1,12 @@
 "use client"
 
 import { Suspense } from "react"
+import { useRequireAuth } from "@/hooks/use-auth"
 import { LocationCategoryHeatmapExpandable } from "@/components/location-category-heatmap-expandable"
 import { MostExpensiveInvoicesExpandable } from "@/components/most-expensive-invoices-expandable"
 import { TopSkusBySpend } from "@/components/top-skus-by-spend"
 import { UniversalFilterBar } from "@/components/universal-filter-bar"
+import { LogoutButton } from "@/components/logout-button"
 import { addMonths, format } from "date-fns"
 
 // Create client component that uses hooks
@@ -50,7 +52,7 @@ const DashboardContent = () => {
       <div className="mb-8 border-b border-slate-700 pb-6">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
-
+          <LogoutButton />
           
           <div className="w-[70%] ml-0 sm:w-[60%] md:w-[50%] lg:w-[40%] xl:w-[30%] mt-3">
             <UniversalFilterBar defaultDateFrom={dateFrom} defaultDateTo={dateTo} />
@@ -88,6 +90,8 @@ const DashboardContent = () => {
 
 // Main component that uses Suspense
 export default function DashboardPage() {
+  const loading = useRequireAuth()
+  if (loading) return null
   return (
     <Suspense fallback={
       <div className="container mx-auto px-4 pb-8 pt-4">

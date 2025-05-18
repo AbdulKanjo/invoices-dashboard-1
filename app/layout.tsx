@@ -1,8 +1,8 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { MainNavigation } from "@/components/main-navigation"
 import { ColumnVisibilityProvider } from "@/context/column-visibility-context"
+import { ConditionalNavigation } from "@/components/conditional-navigation"
 import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased bg-[#111827] text-white`}>
-        <MainNavigation />
+        <ConditionalNavigation />
         <ColumnVisibilityProvider>
           <main className="flex-1 overflow-x-hidden">{children}</main>
         </ColumnVisibilityProvider>
