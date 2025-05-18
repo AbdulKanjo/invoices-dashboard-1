@@ -1,6 +1,7 @@
 "use client"
 import { MobileNav } from "@/components/mobile-nav"
 import { useRequireAuth } from "@/hooks/use-auth"
+import InventoryForecastForm from "@/components/inventory-forecast-form"
 
 export default function AIPage() {
   const loading = useRequireAuth()
@@ -27,9 +28,7 @@ export default function AIPage() {
             </div>
             <h3 className="font-semibold text-xl text-white">Predictive Inventory</h3>
             <p className="text-slate-400">AI-powered inventory forecasting to optimize chemical and equipment stock levels.</p>
-            <button className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg mt-2 transition-colors">
-              Coming Soon
-            </button>
+            <InventoryForecastForm />
           </div>
           
           <div className="col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col gap-4">

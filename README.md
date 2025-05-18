@@ -41,10 +41,12 @@ npm install
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-3.5-turbo # optional
 ```
 
 4. Replace the placeholders with your actual API keys:
    - Get your OpenAI API key from [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+   - `OPENAI_MODEL` can be set to control which model is used (defaults to `gpt-3.5-turbo`)
    - Get your Supabase credentials from your Supabase project dashboard
 
 5. Run the development server:

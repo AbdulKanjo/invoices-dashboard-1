@@ -320,3 +320,72 @@ export async function fetchSkuReplenishmentCadence({
     return []
   }
 }
+
+/**
+ * Generates a simple forecast for a SKU using OpenAI.
+ * Returns null if forecasting fails or OpenAI credentials are missing.
+ */
+export async function forecastSkuDemand(sku: string) {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY not configured")
+      return null
+    }
+
+    // Fetch last 12 months of purchase quantities for the SKU
+    const since = new Date()
+    since.setMonth(since.getMonth() - 12)
+
+    const { data, error } = await supabase
+      .from("invoice_lines")
+      .select("created_at, qty")
+      .eq("sku", sku)
+      .gte("created_at", since.toISOString())
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      console.error("Error fetching historical data:", error)
+      return null
+    }
+
+    const monthlyTotals: Record<string, number> = {}
+    data.forEach((line) => {
+      const month = line.created_at.substring(0, 7) // YYYY-MM
+      monthlyTotals[month] = (monthlyTotals[month] || 0) + line.qty
+    })
+
+    const OpenAI = (await import("openai")).default
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+    const messages = [
+      {
+        role: "system",
+        content:
+          "You are an assistant that forecasts future monthly demand for car wash inventory items.",
+      },
+      {
+        role: "user",
+        content: `Given the historical monthly quantities for SKU ${sku}: ${JSON.stringify(
+          monthlyTotals,
+        )}. Provide a JSON object predicting the next 3 months in the same format.`,
+      },
+    ] as any
+
+    const response = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+      messages,
+      temperature: 0.2,
+    })
+
+    const text = response.choices[0]?.message?.content?.trim() || ""
+    try {
+      const forecast = JSON.parse(text)
+      return forecast
+    } catch {
+      return { raw: text }
+    }
+  } catch (err) {
+    console.error("Error in forecastSkuDemand:", err)
+    return null
+  }
+}
