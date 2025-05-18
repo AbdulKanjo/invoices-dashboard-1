@@ -4,8 +4,8 @@ import { useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { AuthInput } from "@/components/auth-input"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -29,18 +29,18 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-sm bg-slate-900 p-6 rounded-lg border border-slate-800">
         <h1 className="text-2xl font-bold text-center mb-2">Login</h1>
         {error && <p className="text-red-500 text-center text-sm">{error}</p>}
-        <Input
+        <AuthInput
           type="email"
-          placeholder="Email"
+          defaultPlaceholder="Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
           required
         />
-        <Input
+        <AuthInput
           type="password"
-          placeholder="Password"
+          defaultPlaceholder="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
           required
         />
         <Button type="submit" className="w-full">Login</Button>
