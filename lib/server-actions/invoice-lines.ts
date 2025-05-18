@@ -2,13 +2,14 @@
 
 import { supabase } from "@/lib/supabase"
 import type { InvoiceFilters } from "./types"
+import { log } from "@/lib/logger"
 import { applyDateFilter } from "./utils"
 
 /**
  * Fetches invoice lines with filtering options
  */
 export async function fetchInvoiceLinesByFilters(filters: InvoiceFilters) {
-  console.log("fetchInvoiceLinesByFilters called with filters:", filters)
+  log("fetchInvoiceLinesByFilters called with filters:", filters)
   
   try {
     // First, get the invoices matching our filters
@@ -40,13 +41,13 @@ export async function fetchInvoiceLinesByFilters(filters: InvoiceFilters) {
     }
     
     if (!invoices || invoices.length === 0) {
-      console.log("No invoices found matching filters")
+      log("No invoices found matching filters")
       return []
     }
     
     // Get all invoice IDs
     const invoiceIds = invoices.map(invoice => invoice.id)
-    console.log(`Found ${invoiceIds.length} invoices matching filters, fetching line items`)
+    log(`Found ${invoiceIds.length} invoices matching filters, fetching line items`)
     
     // Now get the invoice lines for these invoices
     let linesQuery = supabase
@@ -79,7 +80,7 @@ export async function fetchInvoiceLinesByFilters(filters: InvoiceFilters) {
     }
     
     if (!lines || lines.length === 0) {
-      console.log("No invoice lines found matching filters")
+      log("No invoice lines found matching filters")
       return []
     }
     
@@ -107,7 +108,7 @@ export async function fetchInvoiceLinesByFilters(filters: InvoiceFilters) {
       return dateB.getTime() - dateA.getTime() // Descending order (newest first)
     })
     
-    console.log(`Returning ${sortedLines.length} invoice lines (sorted by date desc)`)
+    log(`Returning ${sortedLines.length} invoice lines (sorted by date desc)`)
     
     // Return the sorted lines
     return sortedLines
@@ -122,7 +123,7 @@ export async function fetchInvoiceLinesByFilters(filters: InvoiceFilters) {
  * Fetches invoice lines for a specific SKU with filtering options
  */
 export async function fetchInvoiceLinesBySkuAndFilters(filters: InvoiceFilters & { sku: string }) {
-  console.log("fetchInvoiceLinesBySkuAndFilters called with filters:", filters)
+  log("fetchInvoiceLinesBySkuAndFilters called with filters:", filters)
   
   try {
     // First, get the invoices matching our date and location filters
@@ -154,13 +155,13 @@ export async function fetchInvoiceLinesBySkuAndFilters(filters: InvoiceFilters &
     }
     
     if (!invoices || invoices.length === 0) {
-      console.log("No invoices found matching filters")
+      log("No invoices found matching filters")
       return []
     }
     
     // Get all invoice IDs
     const invoiceIds = invoices.map(invoice => invoice.id)
-    console.log(`Found ${invoiceIds.length} invoices matching filters, fetching line items for SKU: ${filters.sku}`)
+    log(`Found ${invoiceIds.length} invoices matching filters, fetching line items for SKU: ${filters.sku}`)
     
     // Now get the invoice lines for these invoices and the specific SKU
     let linesQuery = supabase
@@ -191,7 +192,7 @@ export async function fetchInvoiceLinesBySkuAndFilters(filters: InvoiceFilters &
     }
     
     if (!lines || lines.length === 0) {
-      console.log("No invoice lines found matching filters and SKU")
+      log("No invoice lines found matching filters and SKU")
       return []
     }
     
@@ -219,7 +220,7 @@ export async function fetchInvoiceLinesBySkuAndFilters(filters: InvoiceFilters &
       return dateB.getTime() - dateA.getTime() // Descending order (newest first)
     })
     
-    console.log(`Returning ${sortedLines.length} invoice lines for SKU ${filters.sku} (sorted by date desc)`)
+    log(`Returning ${sortedLines.length} invoice lines for SKU ${filters.sku} (sorted by date desc)`)
     return sortedLines
     
   } catch (error) {

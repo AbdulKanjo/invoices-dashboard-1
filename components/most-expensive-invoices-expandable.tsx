@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { ExpandableComponent } from "@/components/expandable-component"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { log } from "@/lib/logger"
 import { fetchAllLocations, fetchAllCategories } from "@/lib/server-actions"
 
 interface MostExpensiveInvoicesExpandableProps {
@@ -68,7 +69,7 @@ export function MostExpensiveInvoicesExpandable({
         // Same for category - pass a single string or undefined, not an array
         const categoryFilter = selectedCategory && selectedCategory !== "All Categories" ? selectedCategory : undefined
         
-        console.log("Sending filters to API:", {
+        log("Sending filters to API:", {
           dateFrom,
           dateTo,
           location: locationFilter,
@@ -94,7 +95,7 @@ export function MostExpensiveInvoicesExpandable({
         }
         
         const invoicesData = await response.json();
-        console.log("Received invoices data:", invoicesData.length);
+        log("Received invoices data:", invoicesData.length);
         setData(invoicesData)
       } catch (error) {
         console.error("Error loading most expensive invoices:", error)

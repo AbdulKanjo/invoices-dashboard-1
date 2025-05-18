@@ -2,6 +2,7 @@
 
 import { supabase } from "@/lib/supabase"
 import type { InvoiceFilters, InvoiceLine } from "./types"
+import { log } from "@/lib/logger"
 import { applyDateFilter, getIgnoreInvoiceIds } from "./utils"
 
 /**
@@ -102,7 +103,7 @@ export async function exportInvoices(filters: InvoiceFilters) {
 }
 
 function applyLocationFilter(query: any, locations?: string[]) {
-  console.log("Inside applyLocationFilter with locations:", locations);
+  log("Inside applyLocationFilter with locations:", locations);
   
   if (locations && locations.length > 0) {
     // Make sure locations is valid for filtering 
@@ -110,11 +111,11 @@ function applyLocationFilter(query: any, locations?: string[]) {
     
     if (validLocations.length === 1) {
       // For a single location, use ilike for case-insensitive match
-      console.log("Applying ILIKE filter with location:", validLocations[0]);
+      log("Applying ILIKE filter with location:", validLocations[0]);
       return query.ilike("location", `%${validLocations[0]}%`);
     } else if (validLocations.length > 1) {
       // For multiple locations, still use in() but with some flexibility
-      console.log("Applying IN filter with locations:", validLocations);
+      log("Applying IN filter with locations:", validLocations);
       return query.in("location", validLocations);
     }
   }
@@ -137,8 +138,8 @@ export async function fetchMostExpensiveInvoices({
   category?: string
 } = {}) {
   try {
-    console.log("NEW APPROACH: Starting with simplified query");
-    console.log("Params:", { dateFrom, dateTo, location, category });
+    log("NEW APPROACH: Starting with simplified query");
+    log("Params:", { dateFrom, dateTo, location, category });
 
     // Step 1: Get all invoices that match date and location filters
     let query = supabase
@@ -165,10 +166,10 @@ export async function fetchMostExpensiveInvoices({
         .limit(1);
 
       if (exactLocation && exactLocation.length > 0) {
-        console.log("Found exact location match:", exactLocation[0].location);
+        log("Found exact location match:", exactLocation[0].location);
         query = query.eq("location", exactLocation[0].location);
       } else {
-        console.log("No exact match, trying with ILIKE");
+        log("No exact match, trying with ILIKE");
         query = query.ilike("location", `%${location}%`);
       }
     }
@@ -181,7 +182,7 @@ export async function fetchMostExpensiveInvoices({
       return [];
     }
     
-    console.log("Found", invoices?.length || 0, "invoices after date/location filtering");
+    log("Found", invoices?.length || 0, "invoices after date/location filtering");
     
     // If no category filter or no invoices, return what we have
     if (!category || category === "All Categories" || !invoices || invoices.length === 0) {
@@ -190,7 +191,7 @@ export async function fetchMostExpensiveInvoices({
     
     // Step 2: For category filtering, we need to join with invoice_lines
     const invoiceIds = invoices.map(invoice => invoice.id);
-    console.log("Looking for category", category, "in these invoices:", invoiceIds);
+    log("Looking for category", category, "in these invoices:", invoiceIds);
     
     // First, get a sample of invoice lines to understand the data structure
     const { data: sampleLines } = await supabase
@@ -198,7 +199,7 @@ export async function fetchMostExpensiveInvoices({
       .select("*")
       .limit(5);
     
-    console.log("Sample invoice lines data structure:", sampleLines);
+    log("Sample invoice lines data structure:", sampleLines);
     
     // Get all invoice lines for these invoices
     const { data: categoryLines, error: categoryError } = await supabase
@@ -212,14 +213,14 @@ export async function fetchMostExpensiveInvoices({
     }
     
     if (!categoryLines || categoryLines.length === 0) {
-      console.log("No invoice lines found for any of these invoices");
+      log("No invoice lines found for any of these invoices");
       // Return the invoices without category filtering as a fallback
       return invoices.slice(0, 20);
     }
 
     // Log categories for debugging
     const availableCategories = [...new Set(categoryLines.map(line => line.category))];
-    console.log("Available categories:", availableCategories);
+    log("Available categories:", availableCategories);
     
     // Get IDs of invoices that have the specified category (case insensitive)
     const matchingIds = new Set();
@@ -233,7 +234,7 @@ export async function fetchMostExpensiveInvoices({
       }
     });
     
-    console.log("Found", matchingIds.size, "invoices with matching category");
+    log("Found", matchingIds.size, "invoices with matching category");
     
     // Filter invoices to those with matching categories
     const filteredInvoices = invoices.filter(invoice => matchingIds.has(invoice.id));
@@ -247,7 +248,7 @@ export async function fetchMostExpensiveInvoices({
       .sort((a, b) => Number(b.invoice_total) - Number(a.invoice_total))
       .slice(0, 20);
     
-    console.log("Final result:", result.length, "invoices");
+    log("Final result:", result.length, "invoices");
     return result;
   } catch (error) {
     console.error("Error in fetchMostExpensiveInvoices:", error)

@@ -1,6 +1,7 @@
 "use server"
 
 import { supabase } from "@/lib/supabase"
+import { log } from "@/lib/logger"
 import type { CategoryFilter, DateRangeFilter, LocationFilter } from "./types"
 
 /**
@@ -53,12 +54,12 @@ export async function fetchTopSkusBySpend({
   _t, // Timestamp for cache busting
 }: DateRangeFilter & LocationFilter & CategoryFilter & { limit?: number; _t?: number } = {}) {
   // Fetch top SKUs by spend with limit and filters
-  console.log(`fetchTopSkusBySpend called with filters:`, { dateFrom, dateTo, location, category, limit, _t })
+  log(`fetchTopSkusBySpend called with filters:`, { dateFrom, dateTo, location, category, limit, _t })
   
   try {
     // Validate required filters - early return if we don't have date range
     if (!dateFrom || !dateTo) {
-      console.log("Missing required date filters, returning empty result")
+      log("Missing required date filters, returning empty result")
       return []
     }
     
@@ -71,7 +72,7 @@ export async function fetchTopSkusBySpend({
 
     // Apply location filter if provided
     if (location) {
-      console.log(`Applying location filter: ${location}`)
+      log(`Applying location filter: ${location}`)
       // First try exact match
       invoiceQuery = invoiceQuery.eq("location", location)
     }
@@ -85,7 +86,7 @@ export async function fetchTopSkusBySpend({
 
     // Early return if no invoices match the filters
     const invoiceIds = invoices.map((invoice) => invoice.id)
-    console.log(`Found ${invoiceIds.length} invoices matching filters`)
+    log(`Found ${invoiceIds.length} invoices matching filters`)
     
     if (invoiceIds.length === 0) {
       return [] // No invoices found, return empty result
@@ -97,7 +98,7 @@ export async function fetchTopSkusBySpend({
     
     // Process invoices in batches if there are many
     if (invoiceIds.length > batchSize) {
-      console.log(`Processing ${invoiceIds.length} invoices in batches`)
+      log(`Processing ${invoiceIds.length} invoices in batches`)
       
       for (let i = 0; i < invoiceIds.length; i += batchSize) {
         const batchIds = invoiceIds.slice(i, i + batchSize)
@@ -129,7 +130,7 @@ export async function fetchTopSkusBySpend({
         .not("category", "ilike", "%ignore%") // Filter out ignore categories
 
       if (category) {
-        console.log(`Applying category filter: ${category}`)
+        log(`Applying category filter: ${category}`)
         linesQuery = linesQuery.eq("category", category)
       }
 
@@ -143,7 +144,7 @@ export async function fetchTopSkusBySpend({
       allLines = lines || []
     }
     
-    console.log(`Found ${allLines.length} invoice lines across all invoices`)
+    log(`Found ${allLines.length} invoice lines across all invoices`)
     
     // Group by SKU - use a Map for better performance with large datasets
     const skuSpend = new Map<string, { sku: string; description: string; category: string; total: number }>()
@@ -167,7 +168,7 @@ export async function fetchTopSkusBySpend({
       .sort((a, b) => b.total - a.total)
       .slice(0, limit)
     
-    console.log(`Returning ${result.length} top SKUs by spend`)
+    log(`Returning ${result.length} top SKUs by spend`)
     return result
   } catch (error) {
     console.error("Error in fetchTopSkusBySpend:", error)
