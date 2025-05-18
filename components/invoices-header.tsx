@@ -5,6 +5,7 @@ import { CalendarRange, Download, MapPin, Tag, Columns } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DateRangePicker } from "@/components/date-range-picker"
 import { exportInvoices, fetchAllLocations, fetchAllCategories } from "@/lib/server-actions"
+import { log } from "@/lib/logger"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
@@ -82,7 +83,7 @@ export function InvoicesHeader() {
     // Only run this on initial load when both date params are missing
     if (!searchParams.has('dateFrom') && !searchParams.has('from') && 
         !searchParams.has('dateTo') && !searchParams.has('to')) {
-      console.log('No date params found, initializing with MTD dates');
+      log('No date params found, initializing with MTD dates');
       
       // Use a small timeout to ensure this runs after initial render
       // This prevents the race condition where data loads with empty params first
@@ -91,7 +92,7 @@ export function InvoicesHeader() {
         params.set('dateFrom', mtdFromDate);
         params.set('dateTo', mtdToDate);
         params.set('_t', Date.now().toString());
-        console.log('Setting initial date params:', mtdFromDate, 'to', mtdToDate);
+        log('Setting initial date params:', mtdFromDate, 'to', mtdToDate);
         router.push(`/invoices?${params.toString()}`);
       }, 100);
     }
@@ -110,7 +111,7 @@ export function InvoicesHeader() {
         limit: selectedLimit || '50'
       };
       
-      console.log('Exporting invoices with filters:', filters);
+      log('Exporting invoices with filters:', filters);
       const data = await exportInvoices(filters)
 
       // Convert data to CSV
@@ -135,7 +136,7 @@ export function InvoicesHeader() {
     }
   }
 
-  console.log('Date range in InvoicesHeader:', { defaultFrom, defaultTo, searchParams: Object.fromEntries([...searchParams.entries()]) });
+  log('Date range in InvoicesHeader:', { defaultFrom, defaultTo, searchParams: Object.fromEntries([...searchParams.entries()]) });
   
   return (
     <div className="flex flex-col space-y-4">
@@ -168,7 +169,7 @@ export function InvoicesHeader() {
                     params.set('dateTo', toStr);
                     params.set('_t', Date.now().toString());
                 
-                console.log("Applying new date range:", fromStr, "to", toStr);
+                log("Applying new date range:", fromStr, "to", toStr);
                 router.push(`/invoices?${params.toString()}`);
               }
             }}

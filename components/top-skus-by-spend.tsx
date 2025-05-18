@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { fetchTopSkusBySpend, fetchAllLocations, fetchAllCategories } from "@/lib/server-actions" // Using the fixed server action
+import { log } from "@/lib/logger"
 import { formatCurrency } from "@/lib/utils"
 
 interface TopSkusBySpendProps {
@@ -68,18 +69,18 @@ export function TopSkusBySpend({ dateFrom, dateTo }: TopSkusBySpendProps) {
     async function loadCardData() {
       try {
         setCardLoading(true)
-        console.log("Loading card data with filters:", { dateFrom, dateTo, cardLocation, cardCategory })
+        log("Loading card data with filters:", { dateFrom, dateTo, cardLocation, cardCategory })
         
         // Only fetch data when we have valid date filters
         // The dateFrom/dateTo should now always be initialized with Month-to-Date values
         if (!dateFrom || !dateTo) {
-          console.log("Skipping fetch - missing date filters")
+          log("Skipping fetch - missing date filters")
           setCardData([])
           setCardLoading(false)
           return
         }
         
-        console.log(`Fetching data for date range: ${dateFrom} to ${dateTo}`)
+        log(`Fetching data for date range: ${dateFrom} to ${dateTo}`)
         const timestamp = new Date().getTime()
         const skuData = await fetchTopSkusBySpend({
           dateFrom,
@@ -90,23 +91,23 @@ export function TopSkusBySpend({ dateFrom, dateTo }: TopSkusBySpendProps) {
           _t: timestamp, // Add timestamp to prevent caching
         })
 
-        console.log('Top SKUs data loaded:', skuData.length, 'items');
+        log('Top SKUs data loaded:', skuData.length, 'items');
         if (skuData.length > 0) {
           // Log the full structure of the first SKU to see all available properties
-          console.log('Sample SKU data structure:', JSON.stringify(skuData[0], null, 2));
+          log('Sample SKU data structure:', JSON.stringify(skuData[0], null, 2));
           
           // Log all properties in first SKU item
           const sampleSku = skuData[0];
-          console.log('Available properties in SKU data:', Object.keys(sampleSku));
+          log('Available properties in SKU data:', Object.keys(sampleSku));
           
           // Log SKU descriptions to see if they contain category information
-          console.log('SKU descriptions:');
+          log('SKU descriptions:');
           skuData.slice(0, 5).forEach((sku, index) => {
-            console.log(`  ${index + 1}. ${sku.sku}: ${sku.description}`);
+            log(`  ${index + 1}. ${sku.sku}: ${sku.description}`);
           });
         }
 
-        console.log(`Loaded ${skuData.length} SKUs for card view`)
+        log(`Loaded ${skuData.length} SKUs for card view`)
         
         // Process the loaded SKU data
         setCardData(skuData)
@@ -141,11 +142,11 @@ export function TopSkusBySpend({ dateFrom, dateTo }: TopSkusBySpendProps) {
       async function loadDialogData() {
         try {
           setDialogLoading(true)
-          console.log("Loading dialog data with filters:", { dateFrom, dateTo, dialogLocation, dialogCategory })
+          log("Loading dialog data with filters:", { dateFrom, dateTo, dialogLocation, dialogCategory })
           
           // Only fetch data when we have valid date filters
           if (!dateFrom || !dateTo) {
-            console.log("Skipping dialog fetch - missing date filters")
+            log("Skipping dialog fetch - missing date filters")
             setDialogData([])
             dialogDataLoaded.current = true
             return
@@ -162,7 +163,7 @@ export function TopSkusBySpend({ dateFrom, dateTo }: TopSkusBySpendProps) {
             _t: timestamp, // Add timestamp for cache busting
           })
 
-          console.log(`Loaded ${skuData.length} SKUs for dialog view`)
+          log(`Loaded ${skuData.length} SKUs for dialog view`)
 
           // Process the loaded SKU data
           setDialogData(skuData)

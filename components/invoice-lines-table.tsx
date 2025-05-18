@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card } from "@/components/ui/card"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { fetchInvoiceLinesByFilters, fetchInvoiceLinesBySkuAndFilters } from "@/lib/server-actions"
+import { log } from "@/lib/logger"
 import { useColumnVisibility, TABLE_COLUMNS } from "@/context/column-visibility-context"
 
 export function InvoiceLinesTable() {
@@ -74,13 +75,13 @@ export function InvoiceLinesTable() {
         limit: searchParams.get('limit') || '50', // Default to 50 if not specified
       };
       
-      console.log('InvoiceLinesTable - Loading with filters:', filters);
-      console.log('Current search params:', Object.fromEntries([...searchParams.entries()]));
+      log('InvoiceLinesTable - Loading with filters:', filters);
+      log('Current search params:', Object.fromEntries([...searchParams.entries()]));
       
       // Skip loading if we don't have date filters yet - this prevents the flicker
       // The header component will set proper date filters which will trigger a load
       if (!filters.dateFrom || !filters.dateTo) {
-        console.log('Skipping initial load until date filters are set');
+        log('Skipping initial load until date filters are set');
         return;
       }
       
@@ -93,23 +94,23 @@ export function InvoiceLinesTable() {
           allLines = await fetchInvoiceLinesByFilters(filters);
         }
         setLines(allLines);
-        console.log(`Loaded ${allLines.length} invoice lines`);
+        log(`Loaded ${allLines.length} invoice lines`);
         
         // Log total number of SKUs (including duplicates)
         const allSkus = allLines.map(line => line.sku).filter(Boolean);
-        console.log(`TOTAL SKUs: ${allSkus.length} SKUs found in the results (including duplicates)`);
-        console.log('Sample SKUs (first 10):', allSkus.slice(0, 10));
+        log(`TOTAL SKUs: ${allSkus.length} SKUs found in the results (including duplicates)`);
+        log('Sample SKUs (first 10):', allSkus.slice(0, 10));
         
         // Log unique categories found
         const categories = [...new Set(allLines.map(line => line.category))];
-        console.log('Categories found in invoice lines:', categories);
+        log('Categories found in invoice lines:', categories);
         
         // Count items per category
         const categoryCounts = allLines.reduce((acc, line) => {
           acc[line.category] = (acc[line.category] || 0) + 1;
           return acc;
         }, {});
-        console.log('Category distribution:', categoryCounts);
+        log('Category distribution:', categoryCounts);
       } catch (error) {
         console.error('Error loading invoice lines:', error);
       } finally {

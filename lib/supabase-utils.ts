@@ -1,3 +1,4 @@
+import { log } from "@/lib/logger"
 // Simple in-memory cache
 const cache: Record<string, { data: any; timestamp: number }> = {}
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes in milliseconds
@@ -20,7 +21,7 @@ export async function safeSupabaseRequest<T>(
   // Check cache first
   const cachedItem = cache[cacheKey]
   if (cachedItem && Date.now() - cachedItem.timestamp < cacheTTL) {
-    console.log(`Using cached data for ${cacheKey}`)
+    log(`Using cached data for ${cacheKey}`)
     return cachedItem.data
   }
 
@@ -33,7 +34,7 @@ export async function safeSupabaseRequest<T>(
       if (attempt > 0) {
         // Exponential backoff: 1s, 2s, 4s, etc.
         const backoffDelay = retryDelay * Math.pow(2, attempt - 1)
-        console.log(`Retry attempt ${attempt + 1}/${maxRetries} for ${cacheKey} after ${backoffDelay}ms delay`)
+        log(`Retry attempt ${attempt + 1}/${maxRetries} for ${cacheKey} after ${backoffDelay}ms delay`)
         await new Promise((resolve) => setTimeout(resolve, backoffDelay))
       }
 

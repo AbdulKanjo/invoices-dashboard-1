@@ -29,6 +29,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { fetchInvoices } from "@/lib/server-actions"
 
+import { log } from "@/lib/logger"
 export type Invoice = {
   id: string
   invoice_date: string
@@ -111,16 +112,14 @@ export function InvoicesTable() {
     async function loadInvoices() {
       try {
         setLoading(true)
-        console.log('[InvoicesTable] Loading invoices with filters:', filters)
+        log('[InvoicesTable] Loading invoices with filters:', filters)
         const invoices = await fetchInvoices(filters)
-        console.log('[InvoicesTable] Data returned from fetchInvoices:', invoices)
+        log('[InvoicesTable] Data returned from fetchInvoices:', invoices)
         setData(invoices)
         if (invoices && invoices.length > 0) {
           // Debug: log the first invoice
-          // eslint-disable-next-line no-console
-          console.log('First fetched invoice:', invoices[0]);
-          // eslint-disable-next-line no-console
-          console.log('First invoice pdf_url:', invoices[0].pdf_url);
+          log('First fetched invoice:', invoices[0]);
+          log('First invoice pdf_url:', invoices[0].pdf_url);
         }
       } catch (error) {
         console.error("Error loading invoices:", error)
