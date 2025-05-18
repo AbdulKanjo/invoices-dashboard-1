@@ -11,6 +11,7 @@ A comprehensive dashboard for car wash business management with data analytics a
 - Invoices management with advanced filtering
 - Location-based analytics and category heatmaps
 - Inventory and expense tracking
+- Inventory forecasting to estimate replenishment dates
 - Data Assistant powered by OpenAI for natural language business insights
 - Authentication and role-based authorization via Supabase
 
@@ -101,6 +102,11 @@ Example queries:
 - "Which location had the highest equipment expenses last quarter?"
 
 Note: Data searches are limited to the last 6 months for performance reasons.
+
+## Inventory Forecasting
+
+Use the Inventory Forecast page to view estimated replenishment dates for each SKU. The
+forecasts are generated from historical invoice data and can be accessed at `/inventory-forecast` or via the Predictive Inventory card on the AI page.
 
 ## Contributing
 

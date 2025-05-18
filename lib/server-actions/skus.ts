@@ -320,3 +320,99 @@ export async function fetchSkuReplenishmentCadence({
     return []
   }
 }
+
+/**
+ * Forecast next replenishment date for each SKU based on purchase cadence
+ */
+export async function forecastInventory({
+  dateFrom,
+  dateTo,
+  location,
+  category,
+}: DateRangeFilter & LocationFilter & CategoryFilter = {}) {
+  try {
+    // First get average cadence information
+    const cadenceData = await fetchSkuReplenishmentCadence({
+      dateFrom,
+      dateTo,
+      location,
+      category,
+    })
+
+    // Fetch last purchase date for each SKU using same filters
+    let invoiceQuery = supabase.from("invoices").select("id, invoice_date")
+
+    if (dateFrom) {
+      invoiceQuery = invoiceQuery.gte("invoice_date", dateFrom)
+    }
+
+    if (dateTo) {
+      invoiceQuery = invoiceQuery.lte("invoice_date", dateTo)
+    }
+
+    if (location && location !== "All Locations") {
+      invoiceQuery = invoiceQuery.eq("location", location)
+    }
+
+    const { data: invoices, error: invoiceError } = await invoiceQuery
+
+    if (invoiceError) {
+      console.error("Error fetching invoices:", invoiceError)
+      throw new Error("Failed to fetch invoices for forecast")
+    }
+
+    const invoiceIds = invoices.map((inv) => inv.id)
+
+    if (invoiceIds.length === 0) {
+      return []
+    }
+
+    let linesQuery = supabase
+      .from("invoice_lines")
+      .select("sku, created_at, category")
+      .in("invoice_id", invoiceIds)
+      .not("category", "ilike", "%ignore%")
+
+    if (category && category !== "All Categories") {
+      linesQuery = linesQuery.eq("category", category)
+    }
+
+    const { data: lines, error: linesError } = await linesQuery
+
+    if (linesError) {
+      console.error("Error fetching invoice lines:", linesError)
+      throw new Error("Failed to fetch lines for forecast")
+    }
+
+    const lastDates = new Map<string, Date>()
+
+    lines.forEach((line) => {
+      const createdAt = new Date(line.created_at)
+      const existing = lastDates.get(line.sku)
+      if (!existing || createdAt > existing) {
+        lastDates.set(line.sku, createdAt)
+      }
+    })
+
+    // Combine cadence data with last purchase date and compute next forecast
+    const result = cadenceData.map((item) => {
+      const last = lastDates.get(item.sku)
+      let next: string | null = null
+      if (last && item.avgDaysBetween) {
+        const nextDate = new Date(last)
+        nextDate.setDate(nextDate.getDate() + item.avgDaysBetween)
+        next = nextDate.toISOString().split("T")[0]
+      }
+      return {
+        ...item,
+        lastPurchaseDate: last ? last.toISOString() : null,
+        nextReplenishmentDate: next,
+      }
+    })
+
+    return result
+  } catch (error) {
+    console.error("Error in forecastInventory:", error)
+    return []
+  }
+}
