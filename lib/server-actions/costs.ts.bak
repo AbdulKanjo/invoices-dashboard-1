@@ -1,0 +1,197 @@
+"use server"
+
+import { supabase } from "@/lib/supabase"
+import type { DateRangeFilter, LocationFilter } from "./types"
+import { applyDateFilter } from "./utils"
+
+/**
+ * Fetches top equipment costs
+ */
+export async function fetchTopEquipmentCosts() {
+  try {
+    const { data: lines, error: linesError } = await supabase
+      .from("invoice_lines")
+      .select("description, line_total, category")
+      .eq("category", "Equipment")
+      .not("category", "ilike", "%ignore%") // Filter out ignore categories
+
+    if (linesError) {
+      console.error("Error fetching equipment costs:", linesError)
+      throw new Error("Failed to fetch top equipment costs")
+    }
+
+    // Group by description
+    const equipmentCosts: { [description: string]: number } = {}
+
+    lines.forEach((line) => {
+      if (!equipmentCosts[line.description]) {
+        equipmentCosts[line.description] = 0
+      }
+      equipmentCosts[line.description] += line.line_total
+    })
+
+    const data = Object.entries(equipmentCosts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10)
+
+    return data
+  } catch (error) {
+    console.error("Error in fetchTopEquipmentCosts:", error)
+    return []
+  }
+}
+
+/**
+ * Fetches top chemical costs
+ */
+export async function fetchTopChemicalCosts() {
+  try {
+    const { data: lines, error: linesError } = await supabase
+      .from("invoice_lines")
+      .select("description, line_total, category")
+      .eq("category", "Chemical")
+      .not("category", "ilike", "%ignore%") // Filter out ignore categories
+
+    if (linesError) {
+      console.error("Error fetching chemical costs:", linesError)
+      throw new Error("Failed to fetch top chemical costs")
+    }
+
+    // Group by description
+    const chemicalCosts: { [description: string]: number } = {}
+
+    lines.forEach((line) => {
+      if (!chemicalCosts[line.description]) {
+        chemicalCosts[line.description] = 0
+      }
+      chemicalCosts[line.description] += line.line_total
+    })
+
+    const data = Object.entries(chemicalCosts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10)
+
+    return data
+  } catch (error) {
+    console.error("Error in fetchTopChemicalCosts:", error)
+    return []
+  }
+}
+
+/**
+ * Fetches top labor costs by invoice
+ */
+export async function fetchTopLaborCostsByInvoice({
+  dateFrom,
+  dateTo,
+  location,
+}: DateRangeFilter & LocationFilter = {}) {
+  // First, get all invoices with filters
+  let invoiceQuery = supabase.from("invoices").select("id, invoice_date, source, location, invoice_total, pdf_url")
+
+  invoiceQuery = applyDateFilter(invoiceQuery, dateFrom, dateTo)
+
+  if (location) {
+    invoiceQuery = invoiceQuery.eq("location", location)
+  }
+
+  const { data: invoices, error: invoiceError } = await invoiceQuery
+
+  if (invoiceError) {
+    console.error("Error fetching invoices:", invoiceError)
+    throw new Error("Failed to fetch top labor costs by invoice")
+  }
+
+  // Get all invoice IDs
+  const invoiceIds = invoices.map((invoice) => invoice.id)
+
+  if (invoiceIds.length === 0) {
+    return [] // No invoices found, return empty result
+  }
+
+  // Get all invoice lines with "ignore" category
+  const { data: ignoreLines, error: ignoreLinesError } = await supabase
+    .from("invoice_lines")
+    .select("invoice_id")
+    .in("invoice_id", invoiceIds)
+    .ilike("category", "%ignore%")
+
+  if (ignoreLinesError) {
+    console.error("Error fetching ignore lines:", ignoreLinesError)
+    throw new Error("Failed to fetch ignore lines")
+  }
+
+  // Create a set of invoice IDs that have "ignore" category lines
+  const ignoreInvoiceIds = new Set(ignoreLines.map((line) => line.invoice_id))
+
+  // Filter out invoices that have "ignore" category lines
+  const filteredInvoices = invoices.filter((invoice) => !ignoreInvoiceIds.has(invoice.id))
+  const filteredInvoiceIds = filteredInvoices.map((invoice) => invoice.id)
+
+  if (filteredInvoiceIds.length === 0) {
+    return [] // No invoices found after filtering, return empty result
+  }
+
+  // Get all labor lines for the filtered invoices
+  const { data: lines, error: linesError } = await supabase
+    .from("invoice_lines")
+    .select("invoice_id, line_total, category")
+    .in("invoice_id", filteredInvoiceIds)
+    .eq("category", "Labor")
+
+  if (linesError) {
+    console.error("Error fetching invoice lines:", linesError)
+    throw new Error("Failed to fetch top labor costs by invoice")
+  }
+
+  // Group by invoice
+  const invoiceLaborCosts: Record<string, number> = {}
+
+  lines.forEach((line) => {
+    if (!invoiceLaborCosts[line.invoice_id]) {
+      invoiceLaborCosts[line.invoice_id] = 0
+    }
+    invoiceLaborCosts[line.invoice_id] += line.line_total
+  })
+
+  // Create a map of invoice details
+  const invoiceDetailsMap = filteredInvoices.reduce(
+    (map, invoice) => {
+      map[invoice.id] = {
+        id: invoice.id,
+        date: invoice.invoice_date,
+        source: invoice.source,
+        location: invoice.location,
+        total: invoice.invoice_total,
+        pdf_url: invoice.pdf_url,
+      }
+      return map
+    },
+    {} as Record<
+      string,
+      { id: string; date: string; source: string; location: string; total: number; pdf_url?: string }
+    >,
+  )
+
+  // Convert to array and sort by labor cost
+  const result = Object.entries(invoiceLaborCosts)
+    .map(([invoiceId, laborCost]) => {
+      const invoiceDetails = invoiceDetailsMap[invoiceId]
+      return {
+        id: invoiceId,
+        date: invoiceDetails.date,
+        source: invoiceDetails.source,
+        location: invoiceDetails.location,
+        invoiceTotal: invoiceDetails.total,
+        laborCost: laborCost,
+        laborPercentage: (laborCost / invoiceDetails.total) * 100,
+        pdf_url: invoiceDetails.pdf_url,
+      }
+    })
+    .sort((a, b) => b.laborCost - a.laborCost)
+    .slice(0, 10)
+
+  return result
+}

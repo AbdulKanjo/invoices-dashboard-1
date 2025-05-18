@@ -1,0 +1,35 @@
+Components to remove:
+- ask-ai-chat.tsx
+- ask-ai-header.tsx
+- category-spend-trend.tsx
+- category-totals.tsx
+- chart-container.tsx
+- cost-per-location.tsx
+- debug-sku-list.tsx
+- direct-sku-query.tsx
+- expandable-card.tsx
+- invoice-pdf-modal.tsx
+- location-category-heatmap.tsx
+- location-heat-map.tsx
+- monthly-location-costs.tsx
+- monthly-trends.tsx
+- most-expensive-invoices.tsx
+- multi-select.tsx
+- service-hours-box.tsx
+- service-hours-visualization-expandable.tsx
+- service-hours-visualization.tsx
+- service-invoices-modal.tsx
+- sidebar.tsx
+- sku-replenishment-cadence.tsx
+- top-chemical-costs.tsx
+- top-equipment-costs.tsx
+- top-labor-costs-by-invoice.tsx
+- vendor-analysis.tsx
+- theme-provider.tsx
+
+Pages to remove:
+- app/ask-ai/page.tsx
+- app/debug-skus/page.tsx
+- app/location/[slug]/page.tsx
+- app/sku-diagnostics/page.tsx
+- app/top-skus/page.tsx

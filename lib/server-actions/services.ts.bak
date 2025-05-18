@@ -1,0 +1,137 @@
+"use server"
+
+import { supabase } from "@/lib/supabase"
+import type { DateRangeFilter, LocationFilter } from "./types"
+import { applyDateFilter } from "./utils"
+
+/**
+ * Fetches service hours data
+ */
+export async function fetchServiceHours({ dateFrom, dateTo, location }: DateRangeFilter & LocationFilter = {}) {
+  // First, get all invoices with filters
+  let invoiceQuery = supabase.from("invoices").select("id, location, invoice_date, source, invoice_total")
+
+  invoiceQuery = applyDateFilter(invoiceQuery, dateFrom, dateTo)
+
+  if (location) {
+    invoiceQuery = invoiceQuery.eq("location", location)
+  }
+
+  const { data: invoices, error: invoiceError } = await invoiceQuery
+
+  if (invoiceError) {
+    console.error("Error fetching invoices:", invoiceError)
+    throw new Error("Failed to fetch service hours")
+  }
+
+  // Get all invoice IDs
+  const invoiceIds = invoices.map((invoice) => invoice.id)
+
+  if (invoiceIds.length === 0) {
+    return { totalHours: 0, totalCost: 0, hoursByLocation: {}, costByLocation: {}, relatedInvoices: [] }
+  }
+
+  // Get all invoice lines with "ignore" category
+  const { data: ignoreLines, error: ignoreLinesError } = await supabase
+    .from("invoice_lines")
+    .select("invoice_id")
+    .in("invoice_id", invoiceIds)
+    .ilike("category", "%ignore%")
+
+  if (ignoreLinesError) {
+    console.error("Error fetching ignore lines:", ignoreLinesError)
+    throw new Error("Failed to fetch ignore lines")
+  }
+
+  // Create a set of invoice IDs that have "ignore" category lines
+  const ignoreInvoiceIds = new Set(ignoreLines.map((line) => line.invoice_id))
+
+  // Filter out invoices that have "ignore" category lines
+  const filteredInvoices = invoices.filter((invoice) => !ignoreInvoiceIds.has(invoice.id))
+  const filteredInvoiceIds = filteredInvoices.map((invoice) => invoice.id)
+
+  if (filteredInvoiceIds.length === 0) {
+    return { totalHours: 0, totalCost: 0, hoursByLocation: {}, costByLocation: {}, relatedInvoices: [] }
+  }
+
+  // Get all labor lines for the filtered invoices
+  // IMPORTANT: Changed to only use "Labor" category to match dashboard stats
+  const { data: lines, error: linesError } = await supabase
+    .from("invoice_lines")
+    .select("invoice_id, qty, line_total, category")
+    .in("invoice_id", filteredInvoiceIds)
+    .eq("category", "Labor") // Changed from OR to just Labor
+
+  if (linesError) {
+    console.error("Error fetching invoice lines:", linesError)
+    throw new Error("Failed to fetch service hours")
+  }
+
+  // Create a map of invoice_id to location
+  const invoiceLocationMap = filteredInvoices.reduce(
+    (map, invoice) => {
+      map[invoice.id] = invoice.location
+      return map
+    },
+    {} as Record<string, string>,
+  )
+
+  // Track which invoices have service/labor lines
+  const serviceInvoiceIds = new Set<string>()
+
+  // Calculate total hours, cost, and breakdown by location
+  let totalHours = 0
+  let totalCost = 0
+  const hoursByLocation: Record<string, number> = {}
+  const costByLocation: Record<string, number> = {}
+
+  lines.forEach((line) => {
+    const hours = line.qty || 0
+    const cost = line.line_total || 0
+
+    totalHours += hours
+    totalCost += cost
+
+    serviceInvoiceIds.add(line.invoice_id)
+
+    const location = invoiceLocationMap[line.invoice_id]
+    if (location) {
+      if (!hoursByLocation[location]) {
+        hoursByLocation[location] = 0
+        costByLocation[location] = 0
+      }
+      hoursByLocation[location] += hours
+      costByLocation[location] += cost
+    }
+  })
+
+  // Calculate labor costs per invoice
+  const invoiceLaborCosts: Record<string, number> = {}
+  lines.forEach((line) => {
+    if (!invoiceLaborCosts[line.invoice_id]) {
+      invoiceLaborCosts[line.invoice_id] = 0
+    }
+    invoiceLaborCosts[line.invoice_id] += line.line_total
+  })
+
+  // Get related invoices
+  const relatedInvoices = filteredInvoices
+    .filter((invoice) => serviceInvoiceIds.has(invoice.id))
+    .map((invoice) => ({
+      id: invoice.id,
+      date: invoice.invoice_date,
+      source: invoice.source,
+      location: invoice.location,
+      total: invoice.invoice_total,
+      laborCost: invoiceLaborCosts[invoice.id] || 0,
+    }))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  return {
+    totalHours,
+    totalCost,
+    hoursByLocation,
+    costByLocation,
+    relatedInvoices,
+  }
+}
