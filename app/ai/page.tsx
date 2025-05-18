@@ -1,6 +1,10 @@
+"use client"
 import { MobileNav } from "@/components/mobile-nav"
+import { useRequireAuth } from "@/hooks/use-auth"
 
 export default function AIPage() {
+  const loading = useRequireAuth()
+  if (loading) return null
   return (
     <div className="flex min-h-screen flex-col">
       <MobileNav />

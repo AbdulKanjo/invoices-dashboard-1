@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense } from "react"
+import { useRequireAuth } from "@/hooks/use-auth"
 import { LocationCategoryHeatmapExpandable } from "@/components/location-category-heatmap-expandable"
 import { MostExpensiveInvoicesExpandable } from "@/components/most-expensive-invoices-expandable"
 import { TopSkusBySpend } from "@/components/top-skus-by-spend"
@@ -88,6 +89,8 @@ const DashboardContent = () => {
 
 // Main component that uses Suspense
 export default function DashboardPage() {
+  const loading = useRequireAuth()
+  if (loading) return null
   return (
     <Suspense fallback={
       <div className="container mx-auto px-4 pb-8 pt-4">
